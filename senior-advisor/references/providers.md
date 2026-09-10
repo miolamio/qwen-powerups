@@ -2,6 +2,8 @@
 
 The broker selects the first available provider in the order `codex,claude,grok,kimi,zai`. `--doctor` checks only whether each CLI binary is on PATH and whether `ZAI_API_KEY` is set. A binary on PATH does not guarantee that login has been completed: the doctor does not authenticate or make a consultation request.
 
+For settings other than provider readiness, see [references/configuration.md](configuration.md).
+
 Verification on 2026-09-08: this skill was exercised on macOS with Python 3.12.1, codex-cli 0.153.4, and Claude Code 2.1.263; the `codex` and `claude` lanes were run end to end. The `grok` (`~/.grok/bin/grok`) and `kimi` (`~/.kimi-code/bin/kimi`) binaries are present, but their lanes were not exercised. The `zai` lane needs `ZAI_API_KEY` and was not exercised.
 
 | Provider | Check | Login / key | One-shot selection |
@@ -48,6 +50,7 @@ Model precedence is `--model`, then `SENIOR_<PROVIDER>_MODEL`, then the lane def
 - `0` — success; also a clean `--lint`, or a `--doctor` run that found a ready provider.
 - `2` — broker error: packet gate rejection, oversized packet, suspected secret, unavailable provider, provider failure or timeout. The reason is on stderr after `ask_senior:`; for `--lint` the findings are the JSON on stdout.
 - `3` — `--doctor` found no ready provider.
+- `4` — consultation refused by policy: budget spent or held for confusion, trigger not allowed at this level, minimum interval not elapsed, duplicate answered packet, or two provider calls in a row failed. The message on stderr names which.
 
 ## Codex consultation home
 

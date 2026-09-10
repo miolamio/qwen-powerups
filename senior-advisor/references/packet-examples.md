@@ -157,3 +157,57 @@ Evidence: none
 ```
 
 The test is explicit: **a fact stays when a different value would produce a different answer.** Changing the platform to Windows Server 2022 would require a separate compatibility check and measurement; changing the baseline latency to 9 ms would remove the measured need for a replacement; changing the uvloop version would make the 8 ms result evidence about a different release, requiring a new measurement before deciding. Keep the version and platform attached to the numbers they qualify.
+
+## 6. A sensitive finding, asked as a class
+
+Before (fictional system and synthetic payload):
+
+```text
+I'm investigating a payment callback in NorthstarPay for customer Demo Shop.
+The endpoint is https://callbacks.northstarpay.example/v1/payment-events. A forged paid status releases that customer's orders without payment.
+This is CPython 3.12.1, standard-library hmac/hashlib with HMAC-SHA256, and JSON over HTTPS.
+The sender signs only event_id; the receiver uses status from the same body to release orders.
+In the local fixture, replacing {"event_id":"evt_demo_7","status":"pending"} with {"event_id":"evt_demo_7","status":"paid"} while retaining the original signature passes verification and releases the order.
+The sender's signature format cannot change during the next 30 days, and unsigned status must never authorise a state change.
+I need to patch this endpoint today; how should it handle callbacks until the sender changes?
+```
+
+After:
+
+```text
+Question: How should a receiver validate a callback when its HMAC covers only an identifier but unsigned fields drive state changes?
+Stack: CPython 3.12.1; standard-library hmac/hashlib; HMAC-SHA256; JSON over HTTPS
+Given: The sender authenticates an identifier only; the receiver trusts unsigned body fields across the external-to-internal trust boundary; altering them leaves verification successful.
+Constraints: Sender signature format fixed for 30 days; unsigned fields must not authorise state changes.
+Ruled out: HMAC verification alone → altered unsigned fields accepted.
+Evidence: none
+```
+
+Removed the system, customer, hostname, endpoint, business impact, working payload, and task narration; signature coverage, the trust boundary, observed acceptance, and the fixed sender contract are enough to evaluate safe validation.
+
+## 7. A planning packet
+
+До:
+
+```text
+Я переношу очередь в проекте «Посылка-Юг», пользователь хочет закончить без потери заданий.
+У нас CPython 3.12.1, psycopg 3.1.18 и PostgreSQL 16.2 на Linux 6.8 x86_64.
+Проверка схемы показала: задания сейчас в таблице A, id — UUID PRIMARY KEY, payload — jsonb; таблица B с такой же схемой пуста.
+По конфигурации один процесс пишет задания, четыре их обрабатывают. Повторная обработка уже безопасна: тесты повторов проходят.
+Сначала я хотел переключить запись, но, наверное, надо перенести строки, потом как-то догнать изменения и переключить обработчики.
+Остановить запись можно только на 30 секунд, потерять задания нельзя. Не знаю скорость копирования и как поймать записи в момент переключения.
+Мне нужен порядок действий и способ откатиться, если всё сломается.
+```
+
+После:
+
+```text
+Objective: Перевести запись и обработку заданий с таблицы A на B без потерь.
+Stack: CPython 3.12.1; psycopg 3.1.18; PostgreSQL 16.2; Linux 6.8 x86_64
+Given: A: id UUID PRIMARY KEY, payload jsonb; B пуста, схема совпадает; 1 процесс записи, 4 обработчика; тесты повторной обработки проходят.
+Constraints: Пауза записи до 30 с; потеря заданий недопустима.
+Unknowns: Скорость копирования; способ учёта записей при переключении.
+Done when: Запись и 4 обработчика используют B; сверка UUID не выявляет потерь; тесты повторов проходят; замер паузы до 30 с; откат проверен на копии.
+```
+
+Убраны рассказ от первого лица, название проекта, поручение и догадки о порядке; сохранены проверенная схема и конфигурация, ограничения и неизвестные, добавлены наблюдаемые критерии завершения.

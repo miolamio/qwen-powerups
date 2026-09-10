@@ -11,3 +11,7 @@ htmlcov/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+# Local agent handoffs and working notes
+/.dev/
+# Senior Advisor consultation ledgers (contain packet text verbatim)
+.senior-advisor/
